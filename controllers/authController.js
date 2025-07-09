@@ -27,8 +27,26 @@ exports.register = async (req, res, next) => {
       password: hashedPassword,
     });
     await newUser.save();
+
+    const token = jwt.sign(
+      {
+        userid: newUser._id,
+        email: newUser.email,
+        name: newUser.name,
+        role: newUser.role,
+      },
+      process.env.JWT_SECRET
+    );
+
     return res.status(201).json({
       status: 201,
+      token,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+      },
       message: "User registered successfully.",
     });
   } catch (error) {
@@ -77,7 +95,14 @@ exports.login = async (req, res, next) => {
 
     return res.status(200).json({
       status: 200,
-      data: { token, message: "Login successful." },
+      token,
+      user: {
+        id: checkedUser._id,
+        name: checkedUser.name,
+        email: checkedUser.email,
+        role: checkedUser.role,
+      },
+      message: "Login successful.",
     });
   } catch (error) {
     next(error);
