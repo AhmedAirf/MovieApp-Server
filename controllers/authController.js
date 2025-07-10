@@ -8,7 +8,7 @@ exports.register = async (req, res, next) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({
-      statues: 400,
+      status: 400, // Fixed typo here
       message: "Please provide all required fields: name, email, and password.",
     });
   }
@@ -16,7 +16,7 @@ exports.register = async (req, res, next) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
-        statues: 400,
+        status: 400, // Fixed typo here
         message: "User with this email already exists.",
       });
     }
@@ -35,7 +35,8 @@ exports.register = async (req, res, next) => {
         name: newUser.name,
         role: newUser.role,
       },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" } // Added expiration
     );
 
     return res.status(201).json({
@@ -53,6 +54,7 @@ exports.register = async (req, res, next) => {
     next(error);
   }
 };
+
 // Login an existing user
 exports.login = async (req, res, next) => {
   try {
@@ -90,7 +92,8 @@ exports.login = async (req, res, next) => {
         name: checkedUser.name,
         role: checkedUser.role,
       },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" } // Added expiration
     );
 
     return res.status(200).json({
