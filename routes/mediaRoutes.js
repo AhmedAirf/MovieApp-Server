@@ -55,6 +55,12 @@ router.get("/genres", getGenres);
 
 router.get("/search", searchContent);
 
+// person details OK - MUST BE BEFORE GENERIC ROUTES
+router.get("/person/:id", getPersonDetails);
+
+// person credits OK - MUST BE BEFORE GENERIC ROUTES
+router.get("/person/:id/credits", getPersonCredits);
+
 // get media by id OK
 router.get("/:type/:id", getMediaById);
 
@@ -75,11 +81,5 @@ router.get("/:type/popular", getPopularMedia);
 
 // top rated media Next Err
 router.get("/:type/top-rated", getTopRatedMedia);
-
-// person details OK
-router.get("/person/:id", getPersonDetails);
-
-// person credits OK
-router.get("/person/:id/credits", getPersonCredits);
 
 module.exports = router;
