@@ -192,11 +192,9 @@ exports.getWatchlist = async (req, res, next) => {
 
 exports.addToWatchlist = async (req, res, next) => {
   try {
-    console.log("addToWatchlist called with body:", req.body);
     const { tmdbid, media_type } = req.body;
 
     if (!tmdbid || !media_type) {
-      console.log("Missing required fields:", { tmdbid, media_type });
       return res.status(400).json({
         status: 400,
         message: "Please provide both tmdbid and media_type.",
@@ -239,19 +237,14 @@ exports.removeFromWatchlist = async (req, res, next) => {
   const { tmdbid } = req.params;
   const { media_type } = req.query;
 
-  console.log("removeFromWatchlist called with:", { tmdbid, media_type });
-
   try {
     const user = await User.findById(req.user._id);
     if (!user) {
-      console.log("User not found");
       return res.status(404).json({
         status: 404,
         message: "User not found.",
       });
     }
-
-    console.log("User found, current watchlist:", user.watchlist);
 
     // Filter by both tmdbid and media_type if provided
     // Convert tmdbid to string for comparison to handle both string and number types
@@ -263,16 +256,7 @@ exports.removeFromWatchlist = async (req, res, next) => {
         )
     );
 
-    console.log("Updated watchlist after filtering:", updatedWatchlist);
-    console.log(
-      "Original length:",
-      user.watchlist.length,
-      "New length:",
-      updatedWatchlist.length
-    );
-
     if (updatedWatchlist.length === user.watchlist.length) {
-      console.log("Item not found in watchlist");
       return res.status(404).json({
         status: 404,
         message: "Item not found in watchlist.",
@@ -282,15 +266,12 @@ exports.removeFromWatchlist = async (req, res, next) => {
     user.watchlist = updatedWatchlist;
     await user.save();
 
-    console.log("Item removed successfully");
-
     return res.status(200).json({
       status: 200,
       message: "Item removed from watchlist successfully.",
       watchlist: user.watchlist,
     });
   } catch (error) {
-    console.error("Error in removeFromWatchlist:", error);
     next(error);
   }
 };
