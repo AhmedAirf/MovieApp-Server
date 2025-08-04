@@ -11,6 +11,7 @@ const {
   getWatchlist,
   addToWatchlist,
   removeFromWatchlist,
+  clearWatchlist,
 } = require("../controllers/userControllers");
 const router = express.Router();
 const { isAdmin } = require("../middleware/adminMiddleware");
@@ -24,6 +25,8 @@ router.put("/profile", protect, uptadeProfile);
 router.get("/watchlist", protect, getWatchlist);
 // Add to watchlist (Authenticated user)
 router.post("/watchlist", protect, addToWatchlist);
+// Clear entire watchlist (Authenticated user)
+router.delete("/watchlist", protect, clearWatchlist);
 // Remove from watchlist (Authenticated user)
 router.delete("/watchlist/:tmdbid", protect, removeFromWatchlist);
 // Get all users (Admin only)

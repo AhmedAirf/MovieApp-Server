@@ -139,14 +139,41 @@ exports.getWatchlist = async (req, res, next) => {
       });
     }
 
+    // If watchlist is empty, return empty array
+    if (!user.watchlist || user.watchlist.length === 0) {
+      return res.status(200).json({
+        status: 200,
+        watchlist: [],
+      });
+    }
+
     const detailedWatchlist = await Promise.all(
       user.watchlist.map(async (item) => {
-        if (item.media_type === "movie") {
-          const response = await fetchMovieById(item.tmdbid);
-          return response.data;
-        } else {
-          const response = await fetchTvById(item.tmdbid);
-          return response.data;
+        try {
+          if (item.media_type === "movie") {
+            const response = await fetchMovieById(item.tmdbid);
+            return response.data;
+          } else {
+            const response = await fetchTvById(item.tmdbid);
+            return response.data;
+          }
+        } catch (error) {
+          console.error(
+            `Error fetching ${item.media_type} with ID ${item.tmdbid}:`,
+            error.message
+          );
+          // Return a placeholder object if TMDB API fails
+          return {
+            id: item.tmdbid,
+            media_type: item.media_type,
+            title: `Unknown ${item.media_type}`,
+            name: `Unknown ${item.media_type}`,
+            poster_path: null,
+            overview: "Content not available",
+            release_date: null,
+            first_air_date: null,
+            vote_average: 0,
+          };
         }
       })
     );
@@ -156,15 +183,18 @@ exports.getWatchlist = async (req, res, next) => {
       watchlist: detailedWatchlist,
     });
   } catch (error) {
+    console.error("Error in getWatchlist:", error);
     next(error);
   }
 };
 
 exports.addToWatchlist = async (req, res, next) => {
   try {
+    console.log("addToWatchlist called with body:", req.body);
     const { tmdbid, media_type } = req.body;
 
     if (!tmdbid || !media_type) {
+      console.log("Missing required fields:", { tmdbid, media_type });
       return res.status(400).json({
         status: 400,
         message: "Please provide both tmdbid and media_type.",
@@ -204,24 +234,63 @@ exports.addToWatchlist = async (req, res, next) => {
 };
 exports.removeFromWatchlist = async (req, res, next) => {
   const { tmdbid } = req.params;
+  const { media_type } = req.query;
+
   try {
     const user = await User.findById(req.user._id);
-    const uptadedWatchlist = user.watchlist.filter(
-      (item) => item.tmdbid !== tmdbid
+    if (!user) {
+      return res.status(404).json({
+        status: 404,
+        message: "User not found.",
+      });
+    }
+
+    // Filter by both tmdbid and media_type if provided
+    const updatedWatchlist = user.watchlist.filter(
+      (item) =>
+        !(
+          item.tmdbid === tmdbid &&
+          (!media_type || item.media_type === media_type)
+        )
     );
 
-    if (uptadedWatchlist.length === user.watchlist.length) {
+    if (updatedWatchlist.length === user.watchlist.length) {
       return res.status(404).json({
         status: 404,
         message: "Item not found in watchlist.",
       });
     }
-    user.watchlist = uptadedWatchlist;
+
+    user.watchlist = updatedWatchlist;
     await user.save();
+
     return res.status(200).json({
       status: 200,
       message: "Item removed from watchlist successfully.",
       watchlist: user.watchlist,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.clearWatchlist = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        status: 404,
+        message: "User not found.",
+      });
+    }
+
+    user.watchlist = [];
+    await user.save();
+
+    return res.status(200).json({
+      status: 200,
+      message: "Watchlist cleared successfully.",
+      watchlist: [],
     });
   } catch (error) {
     next(error);
