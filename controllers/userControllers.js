@@ -152,10 +152,12 @@ exports.getWatchlist = async (req, res, next) => {
         try {
           if (item.media_type === "movie") {
             const response = await fetchMovieById(item.tmdbid);
-            return response.data;
+            // Ensure the id field matches the tmdbid stored in database
+            return { ...response.data, id: item.tmdbid };
           } else {
             const response = await fetchTvById(item.tmdbid);
-            return response.data;
+            // Ensure the id field matches the tmdbid stored in database
+            return { ...response.data, id: item.tmdbid };
           }
         } catch (error) {
           console.error(
@@ -210,7 +212,8 @@ exports.addToWatchlist = async (req, res, next) => {
     }
 
     const exists = user.watchlist.some(
-      (item) => item.tmdbid === tmdbid && item.media_type === media_type
+      (item) =>
+        String(item.tmdbid) === String(tmdbid) && item.media_type === media_type
     );
 
     if (exists) {
@@ -236,25 +239,40 @@ exports.removeFromWatchlist = async (req, res, next) => {
   const { tmdbid } = req.params;
   const { media_type } = req.query;
 
+  console.log("removeFromWatchlist called with:", { tmdbid, media_type });
+
   try {
     const user = await User.findById(req.user._id);
     if (!user) {
+      console.log("User not found");
       return res.status(404).json({
         status: 404,
         message: "User not found.",
       });
     }
 
+    console.log("User found, current watchlist:", user.watchlist);
+
     // Filter by both tmdbid and media_type if provided
+    // Convert tmdbid to string for comparison to handle both string and number types
     const updatedWatchlist = user.watchlist.filter(
       (item) =>
         !(
-          item.tmdbid === tmdbid &&
+          String(item.tmdbid) === String(tmdbid) &&
           (!media_type || item.media_type === media_type)
         )
     );
 
+    console.log("Updated watchlist after filtering:", updatedWatchlist);
+    console.log(
+      "Original length:",
+      user.watchlist.length,
+      "New length:",
+      updatedWatchlist.length
+    );
+
     if (updatedWatchlist.length === user.watchlist.length) {
+      console.log("Item not found in watchlist");
       return res.status(404).json({
         status: 404,
         message: "Item not found in watchlist.",
@@ -264,12 +282,15 @@ exports.removeFromWatchlist = async (req, res, next) => {
     user.watchlist = updatedWatchlist;
     await user.save();
 
+    console.log("Item removed successfully");
+
     return res.status(200).json({
       status: 200,
       message: "Item removed from watchlist successfully.",
       watchlist: user.watchlist,
     });
   } catch (error) {
+    console.error("Error in removeFromWatchlist:", error);
     next(error);
   }
 };
