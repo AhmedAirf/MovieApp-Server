@@ -246,31 +246,34 @@ exports.removeFromWatchlist = async (req, res, next) => {
         .json({ status: 400, message: "tmdbid is required." });
     }
 
-    const tmdbidString = String(tmdbid);
-    const mediaType = media_type === "movie" ? "movie" : "tv";
-
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ status: 404, message: "User not found." });
     }
 
+    const tmdbidString = String(tmdbid);
+    const mediaTypeLower = media_type ? media_type.toLowerCase() : null;
+
+    // Check if item exists
     const found = user.watchlist.some(
       (item) =>
         String(item.tmdbid) === tmdbidString &&
-        (!mediaType || item.media_type.toLowerCase() === mediaType)
+        (!mediaTypeLower || item.media_type.toLowerCase() === mediaTypeLower)
     );
 
     if (!found) {
-      return res
-        .status(404)
-        .json({ status: 404, message: "Item not found in watchlist." });
+      return res.status(404).json({
+        status: 404,
+        message: "Item not found in watchlist.",
+      });
     }
 
+    // Remove it
     user.watchlist = user.watchlist.filter(
       (item) =>
         !(
           String(item.tmdbid) === tmdbidString &&
-          item.media_type.toLowerCase() === mediaType
+          (!mediaTypeLower || item.media_type.toLowerCase() === mediaTypeLower)
         )
     );
 
