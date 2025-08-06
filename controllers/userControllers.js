@@ -152,12 +152,10 @@ exports.getWatchlist = async (req, res, next) => {
         try {
           if (item.media_type === "movie") {
             const response = await fetchMovieById(item.tmdbid);
-            // Ensure the id field matches the tmdbid stored in database
-            return { ...response.data, id: item.tmdbid };
+            return response.data;
           } else {
             const response = await fetchTvById(item.tmdbid);
-            // Ensure the id field matches the tmdbid stored in database
-            return { ...response.data, id: item.tmdbid };
+            return response.data;
           }
         } catch (error) {
           console.error(
@@ -192,9 +190,11 @@ exports.getWatchlist = async (req, res, next) => {
 
 exports.addToWatchlist = async (req, res, next) => {
   try {
+    console.log("addToWatchlist called with body:", req.body);
     const { tmdbid, media_type } = req.body;
 
     if (!tmdbid || !media_type) {
+      console.log("Missing required fields:", { tmdbid, media_type });
       return res.status(400).json({
         status: 400,
         message: "Please provide both tmdbid and media_type.",
@@ -209,9 +209,12 @@ exports.addToWatchlist = async (req, res, next) => {
       });
     }
 
+    // Ensure tmdbid is stored as string for consistency
+    const tmdbidString = String(tmdbid);
+
     const exists = user.watchlist.some(
       (item) =>
-        String(item.tmdbid) === String(tmdbid) && item.media_type === media_type
+        String(item.tmdbid) === tmdbidString && item.media_type === media_type
     );
 
     if (exists) {
@@ -221,7 +224,7 @@ exports.addToWatchlist = async (req, res, next) => {
       });
     }
 
-    user.watchlist.push({ tmdbid, media_type });
+    user.watchlist.push({ tmdbid: tmdbidString, media_type });
     await user.save();
 
     return res.status(201).json({
@@ -238,6 +241,8 @@ exports.removeFromWatchlist = async (req, res, next) => {
   const { media_type } = req.query;
 
   try {
+    console.log("removeFromWatchlist called with:", { tmdbid, media_type });
+
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({
@@ -246,17 +251,30 @@ exports.removeFromWatchlist = async (req, res, next) => {
       });
     }
 
+    console.log("Current watchlist:", user.watchlist);
+
+    // Ensure tmdbid is compared as string for consistency
+    const tmdbidString = String(tmdbid);
+
     // Filter by both tmdbid and media_type if provided
-    // Convert tmdbid to string for comparison to handle both string and number types
     const updatedWatchlist = user.watchlist.filter(
       (item) =>
         !(
-          String(item.tmdbid) === String(tmdbid) &&
+          String(item.tmdbid) === tmdbidString &&
           (!media_type || item.media_type === media_type)
         )
     );
 
+    console.log("Filtered watchlist:", updatedWatchlist);
+
     if (updatedWatchlist.length === user.watchlist.length) {
+      console.log("Item not found in watchlist. Debug info:", {
+        requested: { tmdbid: tmdbidString, media_type },
+        watchlist: user.watchlist,
+        watchlistLength: user.watchlist.length,
+        filteredLength: updatedWatchlist.length,
+      });
+
       return res.status(404).json({
         status: 404,
         message: "Item not found in watchlist.",
@@ -272,6 +290,7 @@ exports.removeFromWatchlist = async (req, res, next) => {
       watchlist: user.watchlist,
     });
   } catch (error) {
+    console.error("Error in removeFromWatchlist:", error);
     next(error);
   }
 };
