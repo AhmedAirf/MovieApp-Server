@@ -91,6 +91,7 @@ exports.login = async (req, res, next) => {
         email: checkedUser.email,
         name: checkedUser.name,
         role: checkedUser.role,
+        createdAt: checkedUser.createdAt,
       },
       process.env.JWT_SECRET,
       { expiresIn: "24h" } // Added expiration
@@ -104,6 +105,7 @@ exports.login = async (req, res, next) => {
         name: checkedUser.name,
         email: checkedUser.email,
         role: checkedUser.role,
+        createdAt: checkedUser.createdAt,
       },
       message: "Login successful.",
     });
