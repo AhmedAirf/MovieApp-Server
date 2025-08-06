@@ -28,9 +28,7 @@ const fetchTvRecommendations = (id) => tmdbApi.get(`/tv/${id}/recommendations`);
 const fetchMovieVideos = (id) => tmdbApi.get(`/movie/${id}/videos`);
 const fetchTvVideos = (id) => tmdbApi.get(`/tv/${id}/videos`);
 const fetchMovieImages = (id) => tmdbApi.get(`/movie/${id}/images`);
-const fetchTvImages = (id) =>
-  tmdbApi.get(`/tv/${id}/images
-`);
+const fetchTvImages = (id) => tmdbApi.get(`/tv/${id}/images`);
 const fetchPopularMovies = () => tmdbApi.get(`/movie/popular`);
 const fetchTopRatedMovies = () => tmdbApi.get(`/movie/top_rated`);
 const fetchPopularTvShows = () => tmdbApi.get(`/tv/popular`);

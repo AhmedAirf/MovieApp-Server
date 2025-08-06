@@ -149,13 +149,47 @@ exports.getWatchlist = async (req, res, next) => {
 
     const detailedWatchlist = await Promise.all(
       user.watchlist.map(async (item) => {
+        console.log("Processing watchlist item:", item);
         try {
           if (item.media_type === "movie") {
             const response = await fetchMovieById(item.tmdbid);
-            return response.data;
-          } else {
+            const result = {
+              ...response.data,
+              media_type: "movie", // Ensure media_type is preserved
+            };
+            console.log("Fetched movie data:", {
+              id: result.id,
+              title: result.title,
+              media_type: result.media_type,
+            });
+            return result;
+          } else if (item.media_type === "tv") {
             const response = await fetchTvById(item.tmdbid);
-            return response.data;
+            const result = {
+              ...response.data,
+              media_type: "tv", // Ensure media_type is preserved
+            };
+            console.log("Fetched TV data:", {
+              id: result.id,
+              name: result.name,
+              media_type: result.media_type,
+            });
+            return result;
+          } else {
+            console.error(
+              `Unknown media_type: ${item.media_type} for ID ${item.tmdbid}`
+            );
+            return {
+              id: item.tmdbid,
+              media_type: item.media_type,
+              title: `Unknown ${item.media_type}`,
+              name: `Unknown ${item.media_type}`,
+              poster_path: null,
+              overview: "Content not available",
+              release_date: null,
+              first_air_date: null,
+              vote_average: 0,
+            };
           }
         } catch (error) {
           console.error(
@@ -240,10 +274,18 @@ exports.removeFromWatchlist = async (req, res, next) => {
   try {
     const { tmdbid, media_type } = req.params;
 
+    console.log("removeFromWatchlist called with:", { tmdbid, media_type });
+
     if (!tmdbid) {
       return res
         .status(400)
         .json({ status: 400, message: "tmdbid is required." });
+    }
+
+    if (!media_type) {
+      return res
+        .status(400)
+        .json({ status: 400, message: "media_type is required." });
     }
 
     const user = await User.findById(req.user._id);
@@ -252,30 +294,45 @@ exports.removeFromWatchlist = async (req, res, next) => {
     }
 
     const tmdbidString = String(tmdbid);
-    const mediaTypeLower = media_type ? media_type.toLowerCase() : null;
+    const mediaTypeLower = media_type.toLowerCase();
 
-    // Check if item exists
+    console.log("Looking for item:", { tmdbidString, mediaTypeLower });
+    console.log("Current watchlist:", user.watchlist);
+
+    // Validate media_type
+    if (!["movie", "tv"].includes(mediaTypeLower)) {
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid media_type. Must be 'movie' or 'tv'.",
+      });
+    }
+
+    // Check if item exists - be more specific about matching
     const found = user.watchlist.some(
       (item) =>
         String(item.tmdbid) === tmdbidString &&
-        (!mediaTypeLower || item.media_type.toLowerCase() === mediaTypeLower)
+        item.media_type.toLowerCase() === mediaTypeLower
     );
+
+    console.log("Item found:", found);
 
     if (!found) {
       return res.status(404).json({
         status: 404,
-        message: "Item not found in watchlist.",
+        message: `Item with tmdbid ${tmdbid} and media_type ${media_type} not found in watchlist.`,
       });
     }
 
-    // Remove it
+    // Remove it - be more specific about matching
     user.watchlist = user.watchlist.filter(
       (item) =>
         !(
           String(item.tmdbid) === tmdbidString &&
-          (!mediaTypeLower || item.media_type.toLowerCase() === mediaTypeLower)
+          item.media_type.toLowerCase() === mediaTypeLower
         )
     );
+
+    console.log("Watchlist after removal:", user.watchlist);
 
     await user.save();
 
