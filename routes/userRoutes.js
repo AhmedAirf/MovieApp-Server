@@ -28,7 +28,7 @@ router.post("/watchlist", protect, addToWatchlist);
 // Clear entire watchlist (Authenticated user)
 router.delete("/watchlist", protect, clearWatchlist);
 // Remove from watchlist (Authenticated user)
-router.delete("/watchlist/:tmdbid", protect, removeFromWatchlist);
+router.delete("/watchlist/:tmdbid/:media_type", protect, removeFromWatchlist);
 // Get all users (Admin only)
 router.get("/", protect, isAdmin, getAllUsers);
 // Get user by ID (Admin only)
