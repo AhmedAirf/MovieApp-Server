@@ -237,51 +237,43 @@ exports.addToWatchlist = async (req, res, next) => {
   }
 };
 exports.removeFromWatchlist = async (req, res, next) => {
-  const { tmdbid } = req.params;
-  const { media_type } = req.query;
-
   try {
-    console.log("removeFromWatchlist called with:", { tmdbid, media_type });
+    const { tmdbid, media_type } = req.params;
+
+    if (!tmdbid) {
+      return res
+        .status(400)
+        .json({ status: 400, message: "tmdbid is required." });
+    }
+
+    const tmdbidString = String(tmdbid);
+    const mediaType = media_type === "movie" ? "movie" : "tv";
 
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({
-        status: 404,
-        message: "User not found.",
-      });
+      return res.status(404).json({ status: 404, message: "User not found." });
     }
 
-    console.log("Current watchlist:", user.watchlist);
+    const found = user.watchlist.some(
+      (item) =>
+        String(item.tmdbid) === tmdbidString &&
+        (!mediaType || item.media_type.toLowerCase() === mediaType)
+    );
 
-    // Ensure tmdbid is compared as string for consistency
-    const tmdbidString = String(tmdbid);
+    if (!found) {
+      return res
+        .status(404)
+        .json({ status: 404, message: "Item not found in watchlist." });
+    }
 
-    // Filter by both tmdbid and media_type if provided
-    const updatedWatchlist = user.watchlist.filter(
+    user.watchlist = user.watchlist.filter(
       (item) =>
         !(
           String(item.tmdbid) === tmdbidString &&
-          (!media_type || item.media_type === media_type)
+          item.media_type.toLowerCase() === mediaType
         )
     );
 
-    console.log("Filtered watchlist:", updatedWatchlist);
-
-    if (updatedWatchlist.length === user.watchlist.length) {
-      console.log("Item not found in watchlist. Debug info:", {
-        requested: { tmdbid: tmdbidString, media_type },
-        watchlist: user.watchlist,
-        watchlistLength: user.watchlist.length,
-        filteredLength: updatedWatchlist.length,
-      });
-
-      return res.status(404).json({
-        status: 404,
-        message: "Item not found in watchlist.",
-      });
-    }
-
-    user.watchlist = updatedWatchlist;
     await user.save();
 
     return res.status(200).json({
