@@ -150,12 +150,28 @@ exports.getWatchlist = async (req, res, next) => {
     const detailedWatchlist = await Promise.all(
       user.watchlist.map(async (item) => {
         try {
+          console.log(`Fetching ${item.media_type} with ID ${item.tmdbid}`);
+
           if (item.media_type === "movie") {
             const response = await fetchMovieById(item.tmdbid);
-            return response.data;
+            console.log(
+              `Movie ${item.tmdbid} fetched:`,
+              response.data.title || response.data.name
+            );
+            return {
+              ...response.data,
+              media_type: item.media_type, // Preserve the media_type from database
+            };
           } else {
             const response = await fetchTvById(item.tmdbid);
-            return response.data;
+            console.log(
+              `TV Show ${item.tmdbid} fetched:`,
+              response.data.title || response.data.name
+            );
+            return {
+              ...response.data,
+              media_type: item.media_type, // Preserve the media_type from database
+            };
           }
         } catch (error) {
           console.error(
@@ -226,6 +242,10 @@ exports.addToWatchlist = async (req, res, next) => {
 
     user.watchlist.push({ tmdbid: tmdbidString, media_type });
     await user.save();
+
+    console.log(
+      `Added to watchlist: tmdbid=${tmdbidString}, media_type=${media_type}`
+    );
 
     return res.status(201).json({
       status: 201,
