@@ -6,20 +6,28 @@ const errorHandler = require("./middleware/errorHandler");
 const notFound = require("./middleware/notFound");
 
 dotenv.config();
-connectDB();
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+const ensureDbConnection = async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Routes
 app.get("/", (req, res) => {
   res.send("🎬 Movie Recommendation API is running...");
 });
 
-app.use("/api/auth", require("./routes/authRoutes"));
-app.use("/api/users", require("./routes/userRoutes"));
+app.use("/api/auth", ensureDbConnection, require("./routes/authRoutes"));
+app.use("/api/users", ensureDbConnection, require("./routes/userRoutes"));
 app.use("/api/media", require("./routes/mediaRoutes"));
 
 // undefined routes
@@ -29,6 +37,11 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(` Server running on http://localhost:${PORT}`)
-);
+
+if (require.main === module) {
+  app.listen(PORT, () =>
+    console.log(`Server running on http://localhost:${PORT}`)
+  );
+}
+
+module.exports = app;
